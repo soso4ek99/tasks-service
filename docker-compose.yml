@@ -1,0 +1,38 @@
+version: "3.9"
+services:
+  db:
+    image: postgres:14-alpine
+    restart: always
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: tasksuser
+      POSTGRES_PASSWORD: taskspassword
+      POSTGRES_DB: tasksdb
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck:  # Проверка готовности базы данных
+      test: ["CMD-SHELL", "pg_isready -U $POSTGRES_USER -d $POSTGRES_DB"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  task-service:
+    build:
+      context: .
+      dockerfile: Dockerfile  # Явное указание Dockerfile
+    restart: always
+    ports:
+      - "50051:50051"
+    environment:
+      DB_HOST: db  # Используем имя сервиса для связи
+      DB_PORT: 5432
+      DB_USER: tasksuser
+      DB_PASSWORD: taskspassword
+      DB_NAME: tasksdb
+    depends_on:
+      db:
+        condition: service_healthy  # Ждем готовности базы данных
+
+volumes:
+  db_data:
